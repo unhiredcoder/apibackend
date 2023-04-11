@@ -38,17 +38,11 @@ require('dotenv').config();
 const mongoose=require("mongoose")
 const Phone=require("./user")
 const app=express();
-// const fs = require('fs');
 let path=require("path")
+const PORT=process.env.PORT || 4000;
 const cors = require('cors');
-app.use(cors({
-  origin: '*'
-}));
+app.use(cors());
 const url=process.env.URL;
-console.log(url)
-
-
-
 // app.use(express.json())        //this is used otherwise u get error like name is not found while destructuring 
 const bodyParser = require('body-parser');
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -83,7 +77,7 @@ app.get("/",(req,res)=>{
 
 mongoose.connect(url, {useNewUrlParser: true, useUnifiedTopology: true } )
 
-.then(() => console.log('Connected Successfully'))
+.then(() => console.log('Connected to Database'))
 
 .catch((err) => { console.error(err); });
 
@@ -173,8 +167,8 @@ app.post('/insert', async (req, res) => {
 
 
   
-app.listen(3000,()=>{
-    console.log("server is working on port 3000")
+app.listen(PORT,()=>{
+    console.log("server is working on port 4000")
 })
 
 
