@@ -82,7 +82,7 @@ mongoose.connect(url, {useNewUrlParser: true, useUnifiedTopology: true } )
 .catch((err) => { console.error(err); });
 
 // app.get("/user",(req,res)=>{
-// user.find().then((user1)=>{    //same like below but better use .then is more profitable then async await
+// user.find().then((user1)=>{    //same like below but better use .then is more profitable then async await (for me only)
 // console.log(user1)
 // })
 // })
