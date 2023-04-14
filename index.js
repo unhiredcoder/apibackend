@@ -33,20 +33,21 @@
 //     res.status(404).send('Sorry, the requested page does not exist');
 //   });
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-const express=require("express")
+const express = require("express")
 require('dotenv').config();
-const mongoose=require("mongoose")
-const Phone=require("./user")
-const app=express();
-let path=require("path")
-const PORT=process.env.PORT || 4000;
+const mongoose = require("mongoose")
+const Phone = require("./user")
+const app = express();
+let path = require("path")
+const PORT = process.env.PORT || 4000;
 const cors = require('cors');
 app.use(cors());
-const url=process.env.URL;
-// app.use(express.json())        //this is used otherwise u get error like name is not found while destructuring 
+const url = process.env.URL;
+app.use(express.json()); // add json middleware to parse incoming request data ,if not use this u get {} or error like name npt found while destructring
+app.use(express.json())    //this is used otherwise u get error like name is not found while destructuring orr {} or not receving while sending response as json
 const bodyParser = require('body-parser');
 app.use(bodyParser.urlencoded({ extended: true }));
-  
+
 // body-parser.json() is used to parse JSON data in the request body, 
 // whereas body-parser.urlencoded() is used to parse form data in the request body.
 
@@ -70,16 +71,16 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 
 
-app.get("/",(req,res)=>{
-    res.sendFile(path.join(__dirname + "/index.html" ))
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname + "/index.html"))
 })
 
 
-mongoose.connect(url, {useNewUrlParser: true, useUnifiedTopology: true } )
+mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true })
 
-.then(() => console.log('Connected to Database'))
+  .then(() => console.log('Connected to Database'))
 
-.catch((err) => { console.error(err); });
+  .catch((err) => { console.error(err); });
 
 // app.get("/user",(req,res)=>{
 // user.find().then((user1)=>{    //same like below but better use .then is more profitable then async await (for me only)
@@ -88,7 +89,7 @@ mongoose.connect(url, {useNewUrlParser: true, useUnifiedTopology: true } )
 // })
 
 
-app.set('view engine','ejs')
+app.set('view engine', 'ejs')
 app.get("/phones", async (req, res) => {
   try {
     const phones = await Phone.find();
@@ -107,7 +108,7 @@ app.get('/json', async (req, res) => {
   try {
     const users = await Phone.find();
     res.send(users)
-} catch (error) {
+  } catch (error) {
     console.error(error);
     res.status(500).send({ error: 'Something went wrong' });
   }
@@ -117,13 +118,13 @@ app.get('/json', async (req, res) => {
 
 
 
-  
-  
+
+
 
 
 
 app.post('/insert', async (req, res) => {
-  const { brand, name, price,image } = req.body;
+  const { brand, name, price, image } = req.body;
   const existingUser = await Phone.findOne({ name });
   if (existingUser) {
     console.log('Username already exists in the database!');
@@ -150,25 +151,76 @@ app.post('/insert', async (req, res) => {
 
 
 
+//this is to update element by id by sending data as a response i.e json() format
+app.patch("/update/:id", async (req, res) => {
+  try {
+    const id = req.params.id;    // use content type= application/json
+    const { name, brand, price, image } = req.body;    //every time ctrl+s in body json of thunderclient
+    let update = { name, brand, price, image }
+    const options = { new: true };  //new:true for returnig updated value
+    await Phone.findByIdAndUpdate(id, update, options);    //bodyparser.json() is important
+    res.send(`all data  is saved successfully saved in database`);
+  }
+  catch (e) {
+    console.log(e);
+    res.status(500).json({ error: "Unable to update phone." });
+  }
+});
 
-// app.patch("/update/:id", async (req, res) => {
-//   try{
-//     const id = req.params.id;    //every time ctrl+s in body json of thunderclient
-//     const ok=await user.findByIdAndUpdate(id, req.body,{new:true});    //bodyparser.json() is important
-//     res.json(ok);
-//   }
-//   catch(e){
-//     console.log(e)
-//   }
-// });
+
+
+
+
+app.get("/update/:id", async (req, res) => {
+  try {
+    // const name = req.query.name; //     this is filter & read the name value from query parameter
+    // const name = req.query.brand; //   we can use this  filter also at a same time if more comdata  & read the brand value from query parameter
+    // const price = req.query.price; // read the price value from query parameter     ===========1ST========WAY=====
+    // const options = { new: true };   // to return the changed value
+    // const updateObj = {
+    //   name: req.query.name,
+    //   price:req.query.price,                                   //===============2ND============WAY================
+    //   brand: req.query.brand,
+    // };
+    const { name, brand, price, image } = req.query;             //===============3RD============WAY================
+    let updateObj = { name, brand, price, image: image ? `https://${image}` : undefined };   //if ONE IS CHANGED COZ OF OTHER CHANGING
+
+    // if (req.query.image) {
+    //   updateObj.image = `https://${req.query.image}`;     //can use this instead of ternery
+    // }
+    console.log(updateObj)
+    const updatedPhone = await Phone.findOneAndUpdate(
+      //below both id is a type of filter
+      { _id: req.params.id }, //QUERY STRING:-- update/6433988  or IN ROUTE ==> /update/:id
+      // { _id: req.query.id}, // QUERY STRING:-- update?id=643398 OR IN ROUTE ==> /update
+      // filter to find the document to update  you can pass above name ,price  instead of thisy
+      // { name: req.query.name,price: req.query.price, brand: req.query.brand, image:`https://${req.query.image}`}, // update the price directly and image 
+      updateObj,
+      // also update everything
+      // { brand: req.query.brand }, //  THIS IS WRONG AND DOES NOT  DO CHANGES
+      { new: true } // options to return the updated document
+    );
+    // await updatedPhone.save();
+    if (!updatedPhone) {
+      return res.status(404).json({ error: "Phone not found." });
+    }
+    res.json(updatedPhone);
+  }
+  catch (e) {
+    console.log(e);
+    res.status(500).json({ error: "Unable to update phone." });
+  }
+});
 
 
 
 
 
-  
-app.listen(PORT,()=>{
-    console.log("server is working on port 4000")
+
+
+
+app.listen(PORT, () => {
+  console.log("server is working on port 4000")
 })
 
 
