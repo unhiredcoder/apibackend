@@ -105,9 +105,20 @@ app.get("/phones", async (req, res) => {
 
 
 app.get('/json', async (req, res) => {
+  // const name = req.query.name.toString();       // use tostring() else u get==>$regex has to be a string we r explicitly converting to string
+  // In your case, req.query.name will be undefined if the name parameter is not provided in the query string. However, since undefined is a falsy value in JavaScript, you can use the ternary operator to convert undefined to an empty string, like this:
+  const name = req.query.name ? req.query.name.toString() : "";    
   try {
-    const users = await Phone.find();
-    res.send(users)
+    // const users = await Phone.find();
+    // res.send(users)
+    const phones = await Phone.find({ name: { $regex:name, $options: 'i' } });
+
+
+    if (!phones.length) {
+      return res.status(404).json({ error: "Phones not found." });
+    }
+
+    res.json(phones);
   } catch (error) {
     console.error(error);
     res.status(500).send({ error: 'Something went wrong' });
@@ -132,7 +143,7 @@ app.post('/insert', async (req, res) => {
   } else {
     try {
       const data = new Phone({
-        name: name,    // add a new property to the schema
+        name: name,    
         brand: brand,
         price: price,
         image: image
@@ -152,7 +163,7 @@ app.post('/insert', async (req, res) => {
 
 
 //this is to update element by id by sending data as a response i.e json() format
-app.patch("/update/:id", async (req, res) => {
+app.patch("/patch/:id", async (req, res) => {
   try {
     const id = req.params.id;    // use content type= application/json
     const { name, brand, price, image } = req.body;    //every time ctrl+s in body json of thunderclient
@@ -211,13 +222,6 @@ app.get("/update/:id", async (req, res) => {
     res.status(500).json({ error: "Unable to update phone." });
   }
 });
-
-
-
-
-
-
-
 
 app.listen(PORT, () => {
   console.log("server is working on port 4000")
